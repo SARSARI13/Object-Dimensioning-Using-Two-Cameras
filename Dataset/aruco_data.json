@@ -1,0 +1,14 @@
+[
+	{
+		"aruco_marker": 0,
+		"identifiant": 5,
+		"aruco_dict": "DICT_6X6_250",
+		"size": 0.0237
+	},
+	{
+		"aruco_marker": 1,
+		"identifiant": 0,
+		"aruco_dict": "DICT_4X4_50",
+		"size": 0.04
+	}
+]
