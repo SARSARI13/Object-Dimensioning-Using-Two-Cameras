@@ -30,10 +30,8 @@ def Aruco(image, intrinsic_matrix, id):  # Find ArUco marker information with id
     else:
         raise ValueError(f"Unsupported ArUco dictionary: {marker_info['aruco_dict']}")
 
-    # Use getPredefinedDictionary directly
     dictionary = cv2.aruco.getPredefinedDictionary(aruco_dict)
 
-    # Detect ArUco marker
     corners, ids, _ = cv2.aruco.detectMarkers(image, dictionary)
 
     # Find the specific marker and estimate its pose
@@ -56,11 +54,9 @@ def Aruco(image, intrinsic_matrix, id):  # Find ArUco marker information with id
 def detect_circles(image, circularity_threshold=0.8):  # Function to detect circles in an image
     output = image.copy()
 
-    # Convert to grayscale and apply blur
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Detect edges
     edges = cv2.Canny(blurred, 0, 250)
     kernel = np.ones((2, 2), np.uint8)
     # Apply dilation to edges to close them
@@ -101,7 +97,6 @@ def detect_circles(image, circularity_threshold=0.8):  # Function to detect circ
 
 
 def pixel_to_world(x, y, Z, intrinsic_matrix):  # Function to convert pixel coordinates to world coordinates
-    # Retrieving intrinsic parameters from intrinsic matrix
     fx = intrinsic_matrix[0, 0]
     fy = intrinsic_matrix[1, 1]
     cx = intrinsic_matrix[0, 2]
@@ -115,7 +110,6 @@ def pixel_to_world(x, y, Z, intrinsic_matrix):  # Function to convert pixel coor
 
 
 def create_transformation_matrix(rotation_vector, translation_vector):  # Function to create a transformation matrix from a rotation and translation vector
-    # Convert rotation vector to rotation matrix
     rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
 
     # Create 4x4 transformation matrix
@@ -127,7 +121,6 @@ def create_transformation_matrix(rotation_vector, translation_vector):  # Functi
 
 
 def cam2_in_cam1(rvec1, tvec1, rvec2, tvec2):  # Function to calculate the position of camera x in camera y's frame with respect to a reference.
-    # Invert the first transformation
     R1, _ = cv2.Rodrigues(rvec1)
     R1_inv = np.linalg.inv(R1)
     tvec1_inv = -np.dot(R1_inv, tvec1)
@@ -157,43 +150,31 @@ def project_point_to_other_camera(point, Z, intrinsic_cam1, intrinsic_cam2, rvec
 
 
 def segment_and_show(image, point1, point2):  # Function to segment a region of interest in an image and find the highest point
-    # Load the image
     height, width = image.shape[:2]
 
-    # Use full width of the image as the rectangle's width
     x_min = int(min(point1[0], point2[0]))
     x_max = int(max(point1[0], point2[0]))
 
-    # Calculate the height of the rectangle using the given y points
     y_min = 0
     y_max = height
 
-    # Draw bounding rectangle on the image
     roi = image[y_min:y_max, x_min:x_max]
 
-    # Convert BGR to RGB for display
     roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
 
-    # Convert Region of Interest (ROI) to grayscale
     gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-    # Apply thresholding to binarize the image
     _, binary_roi = cv2.threshold(gray_roi, 75, 200, cv2.THRESH_BINARY)
 
-    # Find coordinates of black points (pixel values equal to zero)
     black_points = np.column_stack(np.where(binary_roi == 0))
 
-    # Get the highest point (smallest y value) in the cropped region
     highest_point_cropped = black_points[np.argmin(black_points[:, 0])]
 
-    # Convert coordinates of the highest point in the cropped region to original image coordinates
-    # Modified here to reverse the order of coordinates
+
     highest_point_original = (highest_point_cropped[1] + x_min, highest_point_cropped[0] + y_min)
 
-    # Draw the highest point in red (BGR color format) on the original image
     cv2.circle(image, (highest_point_original[0], highest_point_original[1]), 5, (255, 0, 0), -1)
 
-    # Display the image with the marked highest point
     cv2.imshow("Highest Point", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -226,10 +207,8 @@ def load_files_from_folder(folder_path):  # Function to load files from a folder
     return intrinsics, aruco_data, image1, image2
 
 
-# Load data and images from specified folder
 intrinsics, aruco_data, image1, image2 = load_files_from_folder(folder_path)
 
-# Processing intrinsics data
 camera1_params = intrinsics['Camera1']
 camera1_matrix = np.array([[camera1_params['fx'], 0, camera1_params['ppx']],
                            [0, camera1_params['fy'], camera1_params['ppy']],
@@ -241,14 +220,12 @@ camera2_matrix = np.array([[camera2_params['fx'], 0, camera2_params['ppx']],
 dist_coeffs = np.zeros((4, 1))  # Assume zero distortion
 
 
-################################################### Estimate table position in camera 1's frame##############################################
 
 tcam1_5, Rcam1_5 = Aruco(image1, camera1_matrix, 5)
 print("The translation of the table in camera 1's frame is: ", tcam1_5)
 print("The rotation of the table in camera 1's frame is: ", Rcam1_5)
 
 
-###################################################################### Measure object diameter ########################################
 
 P1, P2 = detect_circles(image1, circularity_threshold=0.8)
 # P1 Pixel coordinates for point 1
@@ -256,16 +233,13 @@ P1, P2 = detect_circles(image1, circularity_threshold=0.8)
 
 Zt = tcam1_5[2]  # Table depth in meters
 
-# Project two opposite points of the circle into camera 1's frame
 world_point1 = pixel_to_world(P1[0], P1[1], Zt, camera1_matrix)
 world_point2 = pixel_to_world(P2[0], P2[1], Zt, camera1_matrix)
 
-# Calculate the Euclidean distance between the two points in real world
 distance = np.linalg.norm(world_point2 - world_point1) * 1000
 print(f"Object diameter in mm = {distance} mm")
 
 
-############################################# Estimate camera 2 position in camera 1's frame ########################################
 
 tcam1_0, Rcam1_0 = Aruco(image1, camera1_matrix, 0)
 print("The translation of Aruco 0 in camera 1's frame is: ", tcam1_0)
@@ -288,25 +262,20 @@ T_matrix_cam1_cam2[:3, 3] = T_inv
 print("Transformation matrix of Camera 1 in Camera 2's frame: ", T_matrix_cam1_cam2)
 
 
-############################################################ Measure object height ##############################################################
 
 Z = tcam1_5[2]  # Depth of point = depth of Aruco 1
 
-# Projection of two opposite circle points onto image captured by camera 2 to bound our object of interest.
 point1_in_cam2 = project_point_to_other_camera(P1, Z, camera1_matrix, camera2_matrix, cv2.Rodrigues(R_inv)[0], T_inv)
 point2_in_cam2 = project_point_to_other_camera(P2, Z, camera1_matrix, camera2_matrix, cv2.Rodrigues(R_inv)[0], T_inv)
 
-# Extraction and display of the highest point
 highest_point = segment_and_show(image2, point1_in_cam2, point2_in_cam2)
 
 Zh = tcam2_0[2]  # Depth of this point is the same as depth of Aruco 0
 # Projection of pixel points into world coordinates
 world_point_h = pixel_to_world(highest_point[0], highest_point[1], Zh, camera2_matrix)
-# Pixel coordinates of this point in camera 1's frame
 P_cam2 = np.append(world_point_h, 1)
 p1_cam1 = np.dot(T_matrix_cam2_cam1, P_cam2)
 P_cam1 = p1_cam1[:3] / p1_cam1[3]
-# Object height (table depth - highest point depth)
 h = (tcam1_5[2] - P_cam1[2]) * 1000
 print(f"Object height in mm = {h} mm")
 
