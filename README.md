@@ -1,6 +1,6 @@
 # Object Dimensioning Using Two Cameras
 
-The objective of this work is to develop a script to dimension the diameter and height of the object in millimeters using:
+The objective of this work is to develop a script to dimension the diameter and height of the object in millimeters using  :
 
 - Images captured by two cameras.
 - Intrinsic parameters of the two cameras.
